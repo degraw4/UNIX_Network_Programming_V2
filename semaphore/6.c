@@ -41,8 +41,6 @@ sem_t *sem_open(const char *name, int oflag, mode_t mode, unsigned int value){
     if((oflag != 0) && (oflag | O_CREAT)){
         // user指定了O_CREAT
         // 对新创建的semaphore开启S_IXUSR，初始化结束后再关闭S_IXUSR，避免create和open进程的竞争状态
-        printf("oflag %d\n", oflag);
-        printf("oflag | O_CREAT %d\n", oflag | O_CREAT);
         mode &= ~S_IXUSR;
         // 专门指定O_EXCL打开，开启S_IXUSR
         fd = open(name, O_CREAT | O_EXCL | O_RDWR, mode | S_IXUSR);
@@ -90,11 +88,13 @@ sem_t *sem_open(const char *name, int oflag, mode_t mode, unsigned int value){
 
     // 未指定O_CREAT or O_CREAT创建时发现已存在
     exists:
-        if(fd = open(name, O_RDWR) < 0)
+        if((fd = open(name, O_RDWR)) < 0){
             goto err;
+        }
         sem = mmap(NULL, sizeof(sem_t), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-        if(sem == MAP_FAILED)
+        if(sem == MAP_FAILED){
             goto err;
+        }
         // 确保create后初始化完毕再open
         for(int i = 0; i < MAX_TRIES; ++i){
             // 使用stat而不是fstat
